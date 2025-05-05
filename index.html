@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Recommendation System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #6a11cb;
+            --secondary-color: #2575fc;
+            --accent-color: #ff6b6b;
+            --text-color: #2c3e50;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin-top: 2rem;
+        }
+
+        .card {
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            border: none;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 20px 20px 0 0 !important;
+            padding: 1.5rem;
+        }
+
+        .movie-card {
+            transition: all 0.3s ease;
+            border-radius: 15px;
+            overflow: hidden;
+            background: white;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .movie-poster {
+            height: 300px;
+            object-fit: cover;
+            width: 100%;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-outline-primary {
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-primary:hover {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .badge {
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-weight: 600;
+        }
+
+        .badge.bg-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+        }
+
+        .badge.bg-secondary {
+            background: var(--accent-color) !important;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .search-container input {
+            padding: 15px 20px;
+            border-radius: 25px;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+        }
+
+        .search-container button {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 20px;
+        }
+
+        .rating-stars {
+            color: #ffc107;
+            margin-bottom: 10px;
+        }
+
+        .genre-badge {
+            display: inline-block;
+            margin: 5px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            background: #e9ecef;
+            color: var(--text-color);
+            font-size: 0.8rem;
+        }
+
+        .movie-info {
+            padding: 15px;
+        }
+
+        .movie-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+
+        .loading-spinner {
+            color: var(--primary-color);
+            font-size: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header text-center py-4">
+                <h1><i class="fas fa-film me-2"></i>Movie Recommendation System</h1>
+            </div>
+            <div class="card-body">
+                <div class="search-container">
+                    <input type="text" class="form-control" id="userId" placeholder="Enter User ID (1-3)">
+                    <button class="btn btn-primary" onclick="getRecommendations()">
+                        <i class="fas fa-search me-2"></i>Get Recommendations
+                    </button>
+                </div>
+                
+                <div id="recommendations" class="row">
+                    <!-- Recommendations will be displayed here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header text-center py-4">
+                <h2><i class="fas fa-star me-2"></i>Popular Movies</h2>
+            </div>
+            <div class="card-body">
+                <div class="row" id="popularMovies">
+                    <!-- Popular movies will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data with more movies and genres
+        const movies = {
+            101: { title: 'The Shawshank Redemption', genre: ['Drama'], rating: 4.8, image: 'https://m.media-amazon.com/images/M/MV5BNDE3ODcxYzMtY2YzZC00NmNlLWJiNDMtZDViZWM2MzIxZDYwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_.jpg' },
+            102: { title: 'The Godfather', genre: ['Crime', 'Drama'], rating: 4.7, image: 'https://m.media-amazon.com/images/M/MV5BM2MyNjYxNmUtYTAwNi00MTYxLWJmNWYtYzZlODY3ZTk3OTFlXkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_.jpg' },
+            103: { title: 'The Dark Knight', genre: ['Action', 'Crime', 'Drama'], rating: 4.6, image: 'https://m.media-amazon.com/images/M/MV5BMTMxNTMwODM0NF5BMl5BanBnXkFtZTcwODAyMTk2Mw@@._V1_.jpg' },
+            104: { title: 'Pulp Fiction', genre: ['Crime', 'Drama'], rating: 4.5, image: 'https://m.media-amazon.com/images/M/MV5BNGNhMDIzZTUtNTBlZi00MTRlLWFjM2ItYzViMjE3YzI5MjljXkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_.jpg' },
+            105: { title: 'Fight Club', genre: ['Drama'], rating: 4.4, image: 'https://m.media-amazon.com/images/M/MV5BMmEzNTkxYjQtZTc0MC00YTVjLTg5ZTEtZWMwOWVlYzY0NWIwXkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_.jpg' },
+            106: { title: 'Inception', genre: ['Action', 'Adventure', 'Sci-Fi'], rating: 4.3, image: 'https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_.jpg' },
+            201: { title: 'The Matrix', genre: ['Action', 'Sci-Fi'], rating: 4.9, image: 'https://m.media-amazon.com/images/M/MV5BNzQzOTk3OTAtNDQ0Zi00ZTVkLWI0MTEtMDllZjNkYzNjNTc4L2ltYWdlXkEyXkFqcGdeQXVyNjU0OTQ0OTY@._V1_.jpg' },
+            202: { title: 'Interstellar', genre: ['Adventure', 'Drama', 'Sci-Fi'], rating: 4.8, image: 'https://m.media-amazon.com/images/M/MV5BZjdkOTU3MDktN2IxOS00OGEyLWFmMjktY2FiMmZkNWIyODZiXkEyXkFqcGdeQXVyMTMxODk2OTU@._V1_.jpg' },
+            203: { title: 'The Lord of the Rings', genre: ['Adventure', 'Fantasy'], rating: 4.7, image: 'https://m.media-amazon.com/images/M/MV5BN2EyZjM3NzUtNWUzMi00MTgxLWI0NTctMzY4M2VlOTdjZWRiXkEyXkFqcGdeQXVyNDUzOTQ5MjY@._V1_.jpg' },
+            204: { title: 'Forrest Gump', genre: ['Drama', 'Romance'], rating: 4.6, image: 'https://m.media-amazon.com/images/M/MV5BNWIwODRlZTUtY2U3ZS00Yzg1LWJhNzYtMmZiYmEyNmU1NjMzXkEyXkFqcGdeQXVyMTQxNzMzNDI@._V1_.jpg' },
+            205: { title: 'The Silence of the Lambs', genre: ['Crime', 'Thriller'], rating: 4.5, image: 'https://m.media-amazon.com/images/M/MV5BNjNhZTk0ZmEtNjJhMi00YzFlLWE1MmEtYzM1M2ZmMGMwMTU4XkEyXkFqcGdeQXVyNjU0OTQ0OTY@._V1_.jpg' },
+            206: { title: 'The Green Mile', genre: ['Crime', 'Drama', 'Fantasy'], rating: 4.4, image: 'https://m.media-amazon.com/images/M/MV5BMTUxMzQyNjA5MF5BMl5BanBnXkFtZTYwOTU2NTY3._V1_.jpg' },
+            301: { title: 'Titanic', genre: ['Drama', 'Romance'], rating: 4.3, image: 'https://m.media-amazon.com/images/M/MV5BMDdmZGU3NDQtY2E5My00ZTliLWIzOTUtMTY4ZGI1YjdiNjk3XkEyXkFqcGdeQXVyNTA4NzY1MzY@._V1_.jpg' },
+            302: { title: 'Avatar', genre: ['Action', 'Adventure', 'Fantasy'], rating: 4.2, image: 'https://m.media-amazon.com/images/M/MV5BMTYwOTEwNjAzMl5BMl5BanBnXkFtZTcwODc5MTUwMw@@._V1_.jpg' },
+            303: { title: 'Gladiator', genre: ['Action', 'Adventure', 'Drama'], rating: 4.1, image: 'https://m.media-amazon.com/images/M/MV5BMDliMmNhNDEtODUyOS00MjNlLTgxODEtN2U3NzIxMGVkZTA1L2ltYWdlXkEyXkFqcGdeQXVyNjU0OTQ0OTY@._V1_.jpg' },
+            304: { title: 'The Departed', genre: ['Crime', 'Drama', 'Thriller'], rating: 4.0, image: 'https://m.media-amazon.com/images/M/MV5BMTI1MTY2OTIxNV5BMl5BanBnXkFtZTYwNjQ4NjY3._V1_.jpg' },
+            305: { title: 'The Prestige', genre: ['Drama', 'Mystery', 'Thriller'], rating: 4.9, image: 'https://m.media-amazon.com/images/M/MV5BMjA4NDI0MTIxNF5BMl5BanBnXkFtZTYwNTM0MzY2._V1_.jpg' },
+            306: { title: 'The Social Network', genre: ['Biography', 'Drama'], rating: 4.8, image: 'https://m.media-amazon.com/images/M/MV5BOGUyZDUxZjEtMmIzMC00MzlmLTg4MGItZWJmMzBhZjE0Mjc1XkEyXkFqcGdeQXVyMTMxODk2OTU@._V1_.jpg' }
+        };
+
+        // User preferences (simplified)
+        const userPreferences = {
+            1: [101, 102, 103, 201, 202],
+            2: [104, 105, 106, 203, 204],
+            3: [205, 206, 301, 302, 303]
+        };
+
+        function getRecommendations() {
+            const userId = document.getElementById('userId').value;
+            if (!userId || !userPreferences[userId]) {
+                alert('Please enter a valid User ID (1-3)');
+                return;
+            }
+
+            // Show loading state
+            const recommendationsDiv = document.getElementById('recommendations');
+            recommendationsDiv.innerHTML = '<div class="col-12 text-center"><i class="fas fa-spinner fa-spin loading-spinner"></i></div>';
+
+            // Simulate API delay
+            setTimeout(() => {
+                // Get watched movies for the user
+                const watchedMovies = userPreferences[userId];
+                
+                // Get recommendations (movies not watched by the user)
+                const recommendations = Object.keys(movies)
+                    .filter(movieId => !watchedMovies.includes(parseInt(movieId)))
+                    .slice(0, 6)
+                    .map(movieId => ({
+                        id: parseInt(movieId),
+                        ...movies[movieId]
+                    }));
+
+                displayRecommendations(recommendations);
+            }, 1000);
+        }
+
+        function displayRecommendations(movies) {
+            const recommendationsDiv = document.getElementById('recommendations');
+            recommendationsDiv.innerHTML = '';
+
+            movies.forEach(movie => {
+                const movieCard = `
+                    <div class="col-md-4 mb-4">
+                        <div class="card movie-card h-100">
+                            <img src="${movie.image}" class="movie-poster" alt="${movie.title}">
+                            <div class="movie-info">
+                                <h5 class="movie-title">${movie.title}</h5>
+                                <div class="rating-stars">
+                                    ${'<i class="fas fa-star"></i>'.repeat(Math.floor(movie.rating))}
+                                    ${movie.rating % 1 >= 0.5 ? '<i class="fas fa-star-half-alt"></i>' : ''}
+                                    ${'<i class="far fa-star"></i>'.repeat(5 - Math.ceil(movie.rating))}
+                                </div>
+                                <div class="genres">
+                                    ${movie.genre.map(g => `<span class="genre-badge">${g}</span>`).join('')}
+                                </div>
+                                <button class="btn btn-outline-primary mt-3" onclick="rateMovie(${movie.id})">
+                                    <i class="fas fa-star me-2"></i>Rate Movie
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                recommendationsDiv.innerHTML += movieCard;
+            });
+        }
+
+        function rateMovie(movieId) {
+            const userId = document.getElementById('userId').value;
+            if (!userId || !userPreferences[userId]) {
+                alert('Please enter a valid User ID first');
+                return;
+            }
+
+            const rating = prompt('Rate this movie (1-5):');
+            if (rating && rating >= 1 && rating <= 5) {
+                alert(`Thank you for rating ${movies[movieId].title}! Rating: ${rating}`);
+                // In a real system, this would update the user's preferences
+            } else {
+                alert('Please enter a valid rating between 1 and 5');
+            }
+        }
+
+        // Display popular movies on page load
+        function loadPopularMovies() {
+            const popularMoviesDiv = document.getElementById('popularMovies');
+            
+            // Get top 6 movies by rating
+            const popularMovies = Object.entries(movies)
+                .sort(([, a], [, b]) => b.rating - a.rating)
+                .slice(0, 6)
+                .map(([id, movie]) => ({
+                    id: parseInt(id),
+                    ...movie
+                }));
+
+            popularMovies.forEach(movie => {
+                const movieCard = `
+                    <div class="col-md-4 mb-4">
+                        <div class="card movie-card h-100">
+                            <img src="${movie.image}" class="movie-poster" alt="${movie.title}">
+                            <div class="movie-info">
+                                <h5 class="movie-title">${movie.title}</h5>
+                                <div class="rating-stars">
+                                    ${'<i class="fas fa-star"></i>'.repeat(Math.floor(movie.rating))}
+                                    ${movie.rating % 1 >= 0.5 ? '<i class="fas fa-star-half-alt"></i>' : ''}
+                                    ${'<i class="far fa-star"></i>'.repeat(5 - Math.ceil(movie.rating))}
+                                </div>
+                                <div class="genres">
+                                    ${movie.genre.map(g => `<span class="genre-badge">${g}</span>`).join('')}
+                                </div>
+                                <button class="btn btn-outline-primary mt-3" onclick="rateMovie(${movie.id})">
+                                    <i class="fas fa-star me-2"></i>Rate Movie
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                popularMoviesDiv.innerHTML += movieCard;
+            });
+        }
+
+        // Load popular movies when the page loads
+        window.onload = loadPopularMovies;
+    </script>
+</body>
+</html> 
